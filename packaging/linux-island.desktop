@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Island
+Comment=Dynamic island for the desktop: now playing, volume, brightness and more
+Exec=linux-island
+Icon=linux-island
+Categories=Utility;
+Keywords=dynamic;island;pill;notch;media;
+StartupNotify=false

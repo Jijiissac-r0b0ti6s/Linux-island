@@ -1,0 +1,20 @@
+Package: linux-island
+Version: @VERSION@
+Section: x11
+Priority: optional
+Architecture: amd64
+Maintainer: Linux Island maintainers <linux-island@localhost>
+Installed-Size: @SIZE@
+Depends: python3 (>= 3.10), libxcb-cursor0, libxkbcommon-x11-0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xkb1, libx11-6, libx11-xcb1, libxext6, libegl1, libgl1, libfontconfig1, libdbus-1-3, x11-xserver-utils
+Recommends: wireplumber | pulseaudio-utils, libpulse0, libxss1, bluez
+Description: dynamic-island style pill for the Linux desktop
+ A small pill at the top of the screen (on one, several or all monitors)
+ that shows what is playing in any MPRIS player with controls and a seek
+ bar, pops up for volume, brightness, charger and Bluetooth/headphone
+ changes, shows camera and microphone indicators, swoops into a clock and
+ calendar card when every window is minimised, and turns into a clock
+ screensaver when idle or locking.
+ .
+ Everything can be configured in the settings panel (Linux Island
+ Settings). Works on X11 (and through XWayland); Qt 6 (PySide6) is bundled
+ in /opt/linux-island and runs with any Python 3.10 - 3.15.

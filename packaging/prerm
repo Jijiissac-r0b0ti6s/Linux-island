@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+# remove the byte-code postinst created, so the package leaves nothing behind
+if [ "$1" = remove ] || [ "$1" = upgrade ] || [ "$1" = deconfigure ]; then
+    find /opt/linux-island/lib -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+fi
+exit 0

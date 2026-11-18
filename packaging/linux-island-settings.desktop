@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Island Settings
+Comment=Monitors, colours and features of Linux Island
+Exec=linux-island --settings
+Icon=linux-island
+Categories=Settings;DesktopSettings;
+Keywords=dynamic;island;pill;settings;
+StartupNotify=true

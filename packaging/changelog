@@ -1,0 +1,10 @@
+linux-island (@VERSION@) unstable; urgency=medium
+
+  * Settings panel: monitors, colours, every feature on or off, screensaver
+    and lock options, start on login; changes apply live.
+  * Screensaver and lock: the pill swoops into a clock card and the screen
+    fades to a black clock.
+  * Event-driven window, volume and camera tracking (much lower CPU use).
+  * Volume, brightness and battery icons follow their levels.
+
+ -- Linux Island maintainers <linux-island@localhost>  Wed, 18 Nov 2026 12:00:00 +0530

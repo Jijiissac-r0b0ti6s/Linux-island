@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Island
+Comment=Dynamic island for the desktop
+Exec=linux-island
+Icon=linux-island
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
