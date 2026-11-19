@@ -1,0 +1,8 @@
+{
+  "uuid": "linux-island@jijiissac-r0b0ti6s.github.io",
+  "name": "Linux Island helper",
+  "description": "Lets Linux Island see which monitors have open windows, including native Wayland apps, so its home card works in Wayland sessions. It shows nothing by itself.",
+  "shell-version": ["45", "46", "47", "48", "49"],
+  "url": "https://github.com/Jijiissac-r0b0ti6s/Linux-island",
+  "version": 1
+}

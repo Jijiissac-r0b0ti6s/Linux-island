@@ -34,13 +34,13 @@ Two packages are built for every release (`packaging/build.sh` builds them into 
 **Debian, Ubuntu, Mint, Pop!_OS, elementary, Zorin, …**
 
 ```bash
-sudo apt install ./linux-island_0.2.1_amd64.deb
+sudo apt install ./linux-island_0.3.0_amd64.deb
 ```
 
 **Any other distribution** (Fedora, Arch, openSUSE, …): unpack the tarball and run its installer
 
 ```bash
-tar xf linux-island-0.2.1-x86_64.tar.gz && cd linux-island-0.2.1-x86_64
+tar xf linux-island-0.3.0-x86_64.tar.gz && cd linux-island-0.3.0-x86_64
 sudo ./install.sh          # for everyone: /opt/linux-island, /usr/local/bin
 ./install.sh --user        # or just for you, no root: ~/.local
 ./install.sh --uninstall   # (add --user for a user install) remove it again
@@ -54,9 +54,10 @@ it opens the settings with a short welcome, so the monitors and colours can be p
 on every login.
 
 **Desktops**: GNOME, KDE Plasma, Cinnamon, MATE, Xfce, … on **X11**. In a Wayland session the launcher runs it through
-XWayland: the pill, pop-ups, media, screensaver and settings work, but the home card is off, because native Wayland
-windows (recent Chrome, Brave, VS Code, GNOME apps) can't be seen from X11. To get the home card on Ubuntu, pick
-"Ubuntu on Xorg" on the login screen (the gear at the bottom right).
+XWayland, where X11 can't see native Wayland windows (recent Chrome, Brave, VS Code, GNOME apps). For the home card
+there, GNOME users turn on the **Linux Island helper** extension, which comes with the package: log out and back in
+once after installing, then Settings > Screensaver and lock > Home card > Turn on. Without it, a Wayland session leaves
+the home card out (rather than showing one that never goes back to the pill); everything else works either way.
 
 ## Settings
 
@@ -102,7 +103,7 @@ to a plain `loginctl lock-session`.
 | Battery | `/sys/class/power_supply/BAT*` |
 | Camera / mic | inotify on `/dev/video*` then a scan of open file handles / ALSA capture streams |
 | Bluetooth | BlueZ `Device1` / `Battery1` |
-| Windows | X11 events on the root and every application window (minimise, restore, move, workspace) |
+| Windows | the GNOME helper extension when it's on (sees every window, Wayland too), else X11 events on the root and every application window |
 | Lock / idle | `org.gnome.ScreenSaver` (else logind `LockedHint`), idle time from Mutter (else XScreenSaver) |
 | Screensaver | the pill animates in its own small window; the full-screen black part is only faded by the compositor, so it stays smooth on 4K screens |
 
@@ -128,6 +129,7 @@ Qt needs `libxcb-cursor0` on X11 (`sudo apt install libxcb-cursor0`).
 | `linux_island/system.py` | start on login, GNOME lock shortcut |
 | `linux_island/services/` | media, audio, brightness, battery, camera, mic, Bluetooth, windows, lock / idle |
 | `linux_island/qml/` | the island, its icons and the screensaver |
+| `gnome-extension/` | the GNOME Shell helper (tells the island which monitors are empty, Wayland windows included) |
 | `tests/` | unit and QML tests |
 | `packaging/` | `packaging/build.sh` builds the `.deb` and the universal tarball (with `install.sh`) into `dist/` |
 

@@ -24,6 +24,7 @@ if [ "$MODE" = system ]; then
     APPS=/usr/local/share/applications
     ICONS=/usr/local/share/icons/hicolor/scalable/apps
     AUTOSTART=/etc/xdg/autostart
+    EXTENSIONS=/usr/share/gnome-shell/extensions
 else
     DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
     APP="$DATA/linux-island"
@@ -31,13 +32,16 @@ else
     APPS="$DATA/applications"
     ICONS="$DATA/icons/hicolor/scalable/apps"
     AUTOSTART="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+    EXTENSIONS="$DATA/gnome-shell/extensions"
 fi
+EXT_UUID="$(cd "$HERE/gnome-extension" 2>/dev/null && ls -d *@* 2>/dev/null | head -1)"
 
 if [ "$ACTION" = uninstall ]; then
     rm -rf "$APP"
     rm -f "$BIN/linux-island" "$APPS/linux-island.desktop" "$APPS/linux-island-settings.desktop" \
           "$ICONS/linux-island.svg"
     [ "$MODE" = system ] && rm -f "$AUTOSTART/linux-island.desktop"
+    [ -n "$EXT_UUID" ] && rm -rf "${EXTENSIONS:?}/$EXT_UUID"
     echo "Linux Island removed ($MODE). Your settings stay in ~/.config/linux-island."
     exit 0
 fi
@@ -71,6 +75,10 @@ if [ "$MODE" = system ]; then
     mkdir -p "$AUTOSTART"
     sed "s|^Exec=linux-island|Exec=$BIN/linux-island|" "$HERE/linux-island-autostart.desktop" > "$AUTOSTART/linux-island.desktop"
 fi
+if [ -n "$EXT_UUID" ]; then   # GNOME helper extension: lets the home card see Wayland windows
+    mkdir -p "$EXTENSIONS/$EXT_UUID"
+    cp "$HERE/gnome-extension/$EXT_UUID/"* "$EXTENSIONS/$EXT_UUID/"
+fi
 "$PYOK" -m compileall -q "$APP/lib" >/dev/null 2>&1 || true
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database -q "$APPS" 2>/dev/null || true
 
@@ -78,6 +86,8 @@ echo
 echo "Done. Start it from the app menu (Linux Island), or run: $BIN/linux-island"
 [ "$MODE" = user ] && echo "To start it on every login: $BIN/linux-island --autostart on"
 echo "Settings: Linux Island Settings in the app menu."
+echo "GNOME in a Wayland session: log out and back in once, then turn on the helper extension"
+echo "  in Settings (Screensaver and lock > Home card) so the home card sees every window."
 echo
 echo "Qt also needs these system libraries (most desktops have them; install if it won't start):"
 echo "  Debian/Ubuntu: sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0"

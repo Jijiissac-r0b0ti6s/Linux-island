@@ -3,9 +3,11 @@ linux-island (@VERSION@) unstable; urgency=medium
   * The popup no longer opens by itself when the pill grows under a resting
     pointer (a song starting, a volume or brightness pop-up); it opens once
     the pointer moves over the pill, or on a click.
-  * Wayland sessions: the home card is left out, because native Wayland
-    windows (recent Chrome, Brave, VS Code) can't be seen and the card would
-    stay up; Settings says so.
+  * GNOME helper extension (installed with the package): lets the home card
+    see every window, native Wayland apps (recent Chrome, Brave, VS Code)
+    included, so it works in Wayland sessions; turn it on in Settings
+    (Screensaver and lock > Home card). Without it, a Wayland session leaves
+    the home card out instead of showing one that never goes away.
 
  -- Linux Island maintainers <linux-island@localhost>  Thu, 19 Nov 2026 12:00:00 +0530
 

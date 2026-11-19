@@ -507,9 +507,51 @@ class WaylandTest(unittest.TestCase):
         with mock.patch.object(desktop.system, "wayland_session", return_value=True), \
              mock.patch.object(desktop.QGuiApplication, "platformName", return_value="xcb"), \
              mock.patch.object(desktop, "_X11Windows") as x11, mock.patch("builtins.print"):
-            d = desktop.DesktopService()
+            d = desktop.DesktopService(use_shell=False)
         x11.assert_not_called()
         self.assertEqual(d.emptyScreens, [])
+
+
+class ShellExtensionTest(unittest.TestCase):
+    """With the GNOME helper extension, its answers decide; without it, X11 (or nothing on Wayland)."""
+    def make(self):
+        from linux_island.services import desktop
+        with mock.patch.object(desktop.system, "wayland_session", return_value=True), \
+             mock.patch.object(desktop, "ShellWindows") as shell, mock.patch("builtins.print"):
+            d = desktop.DesktopService()
+        return d, shell
+
+    def test_extension_answers_drive_the_home_card(self):
+        d, shell = self.make()
+        self.assertEqual(d.source, "none")                       # Wayland, extension not heard from yet
+        changes = Spy(d.emptyChanged)
+        d._apply_shell(["DP-1"])                                  # extension: DP-1 has no windows
+        self.assertEqual((d.source, d.emptyScreens), ("gnome-extension", ["DP-1"]))
+        d._apply_shell([])                                        # a (native Wayland) window opened there
+        self.assertEqual(d.emptyScreens, [])
+        self.assertEqual(len(changes), 2)
+
+    def test_losing_the_extension_falls_back(self):
+        d, shell = self.make()
+        d._apply_shell(["DP-1"])
+        d._apply_shell(None)                                      # extension disabled / shell restarted
+        self.assertEqual((d.source, d.emptyScreens), ("none", []))   # on Wayland: no card rather than a stuck one
+
+    def test_monitor_names_follow_hotplug(self):
+        d, shell = self.make()
+        d._names_changed()
+        shell.return_value.set_names.assert_called_once()
+
+    def test_client_reports_unavailable_once(self):
+        from linux_island.services import shell_windows
+        results = []
+        with mock.patch.object(shell_windows, "open_dbus_connection", side_effect=OSError("no bus")), \
+             mock.patch.object(shell_windows.time, "sleep", side_effect=[None, SystemExit]):
+            c = shell_windows.ShellWindows.__new__(shell_windows.ShellWindows)
+            c._names, c._on_result, c._wake = ["DP-1"], results.append, __import__("queue").Queue()
+            with self.assertRaises(SystemExit):
+                c._run()
+        self.assertEqual(results, [None])                         # said once, not every retry
 
 
 # ---------------------------------------------------------------- config

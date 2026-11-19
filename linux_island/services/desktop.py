@@ -11,6 +11,7 @@ from PySide6.QtCore import Property, QObject, QSocketNotifier, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 
 from .. import system
+from .shell_windows import ShellWindows
 
 _ERROR_HANDLER = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
 ALL_DESKTOPS = 0xFFFFFFFF
@@ -146,16 +147,28 @@ class _X11Windows:
 
 
 class DesktopService(QObject):
+    """Empty monitors, from the GNOME Shell helper extension when it is there (it sees every window),
+    else from X11 (X11 sessions only: in a Wayland session X11 can't see native Wayland windows, so
+    every monitor would look empty and the home card would never leave)."""
     emptyChanged = Signal()
+    sourceChanged = Signal()
+    _from_shell = Signal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, use_shell=True):
         super().__init__(parent)
         self._empty = []
         self._windows = None
+        self._shell_ok = False
+        self._x11_empty = []
+        self._from_shell.connect(self._apply_shell)
+        if use_shell:
+            names = [s.name() for s in QGuiApplication.screens()]
+            self._shell = ShellWindows(names, self._from_shell.emit)
+            app = QGuiApplication.instance()
+            app.screenAdded.connect(self._names_changed)
+            app.screenRemoved.connect(self._names_changed)
         if system.wayland_session():
-            # X11 can't see native Wayland windows: every monitor would look empty, and the home card
-            # would swoop in and never leave. Leave the home card out instead.
-            print("linux-island: Wayland session, home card off (native Wayland windows can't be seen)")
+            print("linux-island: Wayland session: the home card needs the Linux Island helper GNOME extension")
         elif QGuiApplication.platformName() == "xcb":
             try:
                 self._windows = _X11Windows()
@@ -186,9 +199,32 @@ class DesktopService(QObject):
             x0, y0, x1, y1 = geo.x(), geo.y(), geo.x() + geo.width() * dpr, geo.y() + geo.height() * dpr
             if not any(x0 <= cx < x1 and y0 <= cy < y1 for cx, cy in centres):
                 empty.append(screen.name())
+        self._x11_empty = empty
+        if not self._shell_ok:
+            self._set(empty)
+
+    def _set(self, empty):
         if empty != self._empty:
             self._empty = empty
             self.emptyChanged.emit()
+
+    def _names_changed(self, *_):
+        self._shell.set_names([s.name() for s in QGuiApplication.screens()])
+
+    def _apply_shell(self, empty):
+        ok = empty is not None
+        if ok != self._shell_ok:
+            self._shell_ok = ok
+            self.sourceChanged.emit()
+        if ok:
+            self._set(sorted(empty))
+        else:
+            self._set(self._x11_empty)   # extension gone: back to what X11 says (nothing on Wayland)
+
+    @Property(str, notify=sourceChanged)
+    def source(self):
+        """Where window information comes from: "gnome-extension", "x11" or "none"."""
+        return "gnome-extension" if self._shell_ok else "x11" if self._windows else "none"
 
     @Property("QVariantList", notify=emptyChanged)
     def emptyScreens(self):

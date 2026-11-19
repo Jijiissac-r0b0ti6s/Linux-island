@@ -92,7 +92,7 @@ class IslandQmlTest(unittest.TestCase):
             }
         self.s["lock"] = LockService(start=False)
         self.s["lock"]._lock_session = mock.Mock()
-        self.s["desktop"] = DesktopService()   # offscreen: no window tracking, driven by hand
+        self.s["desktop"] = DesktopService(use_shell=False)   # offscreen: no window tracking, driven by hand
         self.s["brightness"]._idle = mock.Mock(idle_ms=mock.Mock(return_value=0))
         self.s["audio"]._run = lambda cmd: None
         self.s["audio"]._apply(0.5, False)

@@ -117,6 +117,20 @@ class SettingsBackend(QObject):
         self._welcome = False
         self.welcomeChanged.emit()
 
+    helperChanged = Signal()
+
+    @Property(str, notify=helperChanged)
+    def helperState(self):
+        """The GNOME helper extension: active, off, error, out-of-date, missing, no-gnome."""
+        if not hasattr(self, "_helper"):
+            self._helper = system.helper_extension_state()
+        return self._helper
+
+    @Slot()
+    def enableHelper(self):
+        self._helper = system.enable_helper_extension()
+        self.helperChanged.emit()
+
     @Property(bool, constant=True)
     def waylandSession(self):
         """The home card can't work here (see DesktopService)."""

@@ -661,9 +661,10 @@ ApplicationWindow {
                             required property var modelData
                             required property int index
                             readonly property bool unavailable: modelData.key === "home_on_empty_desktop" && settings.waylandSession
+                                                                && settings.helperState !== "active"
                             enabled: !unavailable
                             title: modelData.title
-                            detail: unavailable ? "Not available in a Wayland session: the island can't see native Wayland windows" : modelData.detail
+                            detail: unavailable ? "In a Wayland session this needs the Linux Island helper GNOME extension (Screensaver and lock page)" : modelData.detail
                             divider: index < 2
                             checked: v[modelData.key] === true
                             onToggled: on => put(modelData.key, on)
@@ -730,6 +731,29 @@ ApplicationWindow {
 
                 GroupTitle { text: "Home card" }
                 Card {
+                    SettingRow {
+                        visible: settings.helperState !== "no-gnome"
+                        title: "GNOME helper extension"
+                        detail: ({
+                            "active": "On: the home card sees every window, Wayland apps included",
+                            "off": "Off. " + (settings.waylandSession ? "Needed for the home card in this Wayland session" : "Optional on X11; lets the home card see every window"),
+                            "missing": "Installed, but GNOME picks it up at the next login: log out and back in, then turn it on",
+                            "error": "GNOME reported an error with it; log out and back in, then try again",
+                            "out-of-date": "Not made for this GNOME version yet",
+                            "not-installed": "Not installed; it comes with the Linux Island package (or install.sh)",
+                        })[settings.helperState] || ""
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: settings.helperState === "active"
+                            width: 8; height: 8; radius: 4; color: "#34c759"
+                        }
+                        Button {
+                            visible: settings.helperState === "off" || settings.helperState === "missing"
+                            text: settings.helperState === "missing" ? "Turn on at next login" : "Turn on"
+                            flat: true
+                            onClicked: settings.enableHelper()
+                        }
+                    }
                     SettingRow {
                         enabled: v.home_on_empty_desktop === true
                         title: "Height on screen"

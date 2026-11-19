@@ -444,6 +444,7 @@ class Island:
             "screensaver_armed": lock._armed, "screensaver_after_s": lock._saver_ms / 1000,
             "idle_s": round((lock._clock.idle_ms() or 0) / 1000, 1),
             "lock_transition": bool(self.cfg.get("lock_transition")),
+            "windows_from": self.services["desktop"].source,
         }
 
     def wanted(self, screen):
