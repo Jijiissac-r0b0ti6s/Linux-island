@@ -134,7 +134,8 @@ def _shell_extensions_call(method, *args):
 
 def helper_extension_state():
     """"active", "off", "error", "out-of-date", "missing" (installed after GNOME started: log out and
-    back in), "not-installed", or "no-gnome" when this isn't a GNOME Shell session."""
+    back in), "pending" (turned on, starts at the next login), "not-installed", or "no-gnome" when
+    this isn't a GNOME Shell session."""
     try:
         info = _shell_extensions_call("GetExtensionInfo", EXTENSION_UUID)
     except Exception:
@@ -143,7 +144,11 @@ def helper_extension_state():
         on_disk = any(os.path.isdir(os.path.join(d, "gnome-shell", "extensions", EXTENSION_UUID)) for d in
                       [os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "/usr/share",
                        "/usr/local/share"])
-        return "missing" if on_disk else "not-installed"
+        if not on_disk:
+            return "not-installed"
+        # turned on already, GNOME just hasn't loaded it yet (that happens at login)
+        enabled = EXTENSION_UUID in _strv(_gsettings("get", "org.gnome.shell", "enabled-extensions"))
+        return "pending" if enabled else "missing"
     state = info.get("state", ("d", 99))[1]
     return _EXTENSION_STATES.get(int(state), "off")
 

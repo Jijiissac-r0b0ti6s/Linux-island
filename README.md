@@ -34,13 +34,13 @@ Two packages are built for every release (`packaging/build.sh` builds them into 
 **Debian, Ubuntu, Mint, Pop!_OS, elementary, Zorin, …**
 
 ```bash
-sudo apt install ./linux-island_0.3.0_amd64.deb
+sudo apt install ./linux-island_0.3.1_amd64.deb
 ```
 
 **Any other distribution** (Fedora, Arch, openSUSE, …): unpack the tarball and run its installer
 
 ```bash
-tar xf linux-island-0.3.0-x86_64.tar.gz && cd linux-island-0.3.0-x86_64
+tar xf linux-island-0.3.1-x86_64.tar.gz && cd linux-island-0.3.1-x86_64
 sudo ./install.sh          # for everyone: /opt/linux-island, /usr/local/bin
 ./install.sh --user        # or just for you, no root: ~/.local
 ./install.sh --uninstall   # (add --user for a user install) remove it again

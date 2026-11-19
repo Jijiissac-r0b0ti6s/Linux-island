@@ -1,5 +1,12 @@
 linux-island (@VERSION@) unstable; urgency=medium
 
+  * Settings: after "Turn on" for a helper extension GNOME hasn't loaded yet,
+    the row now says it starts at the next login (it used to look unchanged).
+
+ -- Linux Island maintainers <linux-island@localhost>  Thu, 19 Nov 2026 15:00:00 +0530
+
+linux-island (0.3.0) unstable; urgency=medium
+
   * The popup no longer opens by itself when the pill grows under a resting
     pointer (a song starting, a volume or brightness pop-up); it opens once
     the pointer moves over the pill, or on a click.

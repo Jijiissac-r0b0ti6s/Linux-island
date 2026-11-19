@@ -339,6 +339,68 @@ class LockShortcutTest(unittest.TestCase):
         self.assertIn("-m linux_island", system.launcher())
 
 
+class HelperExtensionTest(unittest.TestCase):
+    """Turning the GNOME helper on before GNOME has loaded it (just installed)."""
+    def setUp(self):
+        self.store = {"enabled-extensions": "['tilingshell@ferrarodomenico.com', 'dash2dock-lite@icedman.github.com']"}
+
+        def fake(op, schema, key, *value):
+            if op == "get":
+                return self.store.get(key, "@as []")
+            if op == "set":
+                self.store[key] = value[0]
+            return ""
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "gnome-shell" / "extensions" / system.EXTENSION_UUID).mkdir(parents=True)
+        self.patches = [mock.patch.object(system, "_gsettings", side_effect=fake),
+                        mock.patch.dict(os.environ, {"XDG_DATA_HOME": str(tmp)})]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+
+    def shell(self, info=None, enable_works=False):
+        def call(method, *args):
+            if method == "GetExtensionInfo":
+                return info if info is not None else {}
+            if method == "EnableExtension":
+                if not enable_works:
+                    raise RuntimeError("No extension with that uuid")
+                return True
+        return mock.patch.object(system, "_shell_extensions_call", side_effect=call)
+
+    def test_not_loaded_yet_then_turned_on_for_next_login(self):
+        with self.shell():
+            self.assertEqual(system.helper_extension_state(), "missing")
+            self.assertEqual(system.enable_helper_extension(), "pending")      # the panel now says so
+        saved = self.store["enabled-extensions"]
+        self.assertIn(system.EXTENSION_UUID, saved)
+        self.assertIn("tilingshell@ferrarodomenico.com", saved)            # the user's own ones stay
+        self.assertIn("dash2dock-lite@icedman.github.com", saved)
+        with self.shell():
+            system.enable_helper_extension()                                # clicking twice adds it once
+        self.assertEqual(self.store["enabled-extensions"].count(system.EXTENSION_UUID), 1)
+
+    def test_states_gnome_reports(self):
+        with self.shell(info={"state": ("d", 1.0)}):
+            self.assertEqual(system.helper_extension_state(), "active")
+        with self.shell(info={"state": ("d", 2.0)}):
+            self.assertEqual(system.helper_extension_state(), "off")
+        with self.shell(info={"state": ("d", 3.0)}):
+            self.assertEqual(system.helper_extension_state(), "error")
+
+    def test_not_installed(self):
+        with self.shell(), mock.patch.dict(os.environ, {"XDG_DATA_HOME": tempfile.mkdtemp()}), \
+             mock.patch.object(system.os.path, "isdir", return_value=False):
+            self.assertEqual(system.helper_extension_state(), "not-installed")
+
+    def test_no_gnome(self):
+        with mock.patch.object(system, "_shell_extensions_call", side_effect=OSError("no bus")):
+            self.assertEqual(system.helper_extension_state(), "no-gnome")
+
+
 class CliTest(unittest.TestCase):
     def run_cli(self, *args):
         env = dict(os.environ, QT_QPA_PLATFORM="offscreen")

@@ -737,7 +737,8 @@ ApplicationWindow {
                         detail: ({
                             "active": "On: the home card sees every window, Wayland apps included",
                             "off": "Off. " + (settings.waylandSession ? "Needed for the home card in this Wayland session" : "Optional on X11; lets the home card see every window"),
-                            "missing": "Installed, but GNOME picks it up at the next login: log out and back in, then turn it on",
+                            "missing": "Installed; GNOME loads new extensions when you log in. Turn it on now and it starts at your next login",
+                            "pending": "Turned on: it starts when you next log out and back in",
                             "error": "GNOME reported an error with it; log out and back in, then try again",
                             "out-of-date": "Not made for this GNOME version yet",
                             "not-installed": "Not installed; it comes with the Linux Island package (or install.sh)",
