@@ -10,6 +10,8 @@ import ctypes.util
 from PySide6.QtCore import Property, QObject, QSocketNotifier, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 
+from .. import system
+
 _ERROR_HANDLER = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
 ALL_DESKTOPS = 0xFFFFFFFF
 PROPERTY_CHANGE_MASK = 1 << 22
@@ -150,7 +152,11 @@ class DesktopService(QObject):
         super().__init__(parent)
         self._empty = []
         self._windows = None
-        if QGuiApplication.platformName() == "xcb":
+        if system.wayland_session():
+            # X11 can't see native Wayland windows: every monitor would look empty, and the home card
+            # would swoop in and never leave. Leave the home card out instead.
+            print("linux-island: Wayland session, home card off (native Wayland windows can't be seen)")
+        elif QGuiApplication.platformName() == "xcb":
             try:
                 self._windows = _X11Windows()
             except Exception as e:

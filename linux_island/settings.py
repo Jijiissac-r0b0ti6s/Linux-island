@@ -117,6 +117,11 @@ class SettingsBackend(QObject):
         self._welcome = False
         self.welcomeChanged.emit()
 
+    @Property(bool, constant=True)
+    def waylandSession(self):
+        """The home card can't work here (see DesktopService)."""
+        return system.wayland_session()
+
     @Property(str, constant=True)
     def configPath(self):
         return str(config.CONFIG_PATH)

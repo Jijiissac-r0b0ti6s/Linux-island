@@ -34,13 +34,13 @@ Two packages are built for every release (`packaging/build.sh` builds them into 
 **Debian, Ubuntu, Mint, Pop!_OS, elementary, Zorin, …**
 
 ```bash
-sudo apt install ./linux-island_0.2.0_amd64.deb
+sudo apt install ./linux-island_0.2.1_amd64.deb
 ```
 
 **Any other distribution** (Fedora, Arch, openSUSE, …): unpack the tarball and run its installer
 
 ```bash
-tar xf linux-island-0.2.0-x86_64.tar.gz && cd linux-island-0.2.0-x86_64
+tar xf linux-island-0.2.1-x86_64.tar.gz && cd linux-island-0.2.1-x86_64
 sudo ./install.sh          # for everyone: /opt/linux-island, /usr/local/bin
 ./install.sh --user        # or just for you, no root: ~/.local
 ./install.sh --uninstall   # (add --user for a user install) remove it again
@@ -54,7 +54,9 @@ it opens the settings with a short welcome, so the monitors and colours can be p
 on every login.
 
 **Desktops**: GNOME, KDE Plasma, Cinnamon, MATE, Xfce, … on **X11**. In a Wayland session the launcher runs it through
-XWayland, where the pill works but the home card only sees X11 apps and the lock integration is GNOME's.
+XWayland: the pill, pop-ups, media, screensaver and settings work, but the home card is off, because native Wayland
+windows (recent Chrome, Brave, VS Code, GNOME apps) can't be seen from X11. To get the home card on Ubuntu, pick
+"Ubuntu on Xorg" on the login screen (the gear at the bottom right).
 
 ## Settings
 

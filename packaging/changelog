@@ -1,5 +1,16 @@
 linux-island (@VERSION@) unstable; urgency=medium
 
+  * The popup no longer opens by itself when the pill grows under a resting
+    pointer (a song starting, a volume or brightness pop-up); it opens once
+    the pointer moves over the pill, or on a click.
+  * Wayland sessions: the home card is left out, because native Wayland
+    windows (recent Chrome, Brave, VS Code) can't be seen and the card would
+    stay up; Settings says so.
+
+ -- Linux Island maintainers <linux-island@localhost>  Thu, 19 Nov 2026 12:00:00 +0530
+
+linux-island (0.2.0) unstable; urgency=medium
+
   * Settings panel: monitors, colours, every feature on or off, screensaver
     and lock options, start on login; changes apply live.
   * Screensaver and lock: the pill swoops into a clock card and the screen

@@ -206,16 +206,35 @@ Item {
         onHeightChanged: root.pushMask()
         Component.onCompleted: root.pushMask()
 
+        // Open on hover only once the pointer really moves over the pill. When the pill grows under a
+        // pointer that is just resting there (a song starts, a volume / brightness pop-up appears),
+        // Qt reports a hover too; that must not open the popup by itself.
         HoverHandler {
             id: hover
+            property point enteredAt
+            property bool placed: false    // enteredAt holds the first real position of this hover
+            readonly property point at: point.scenePosition
+            function wantsOpen() { return !root.saverCard && cfg.open_on_hover !== false }
             onHoveredChanged: {
-                if (hovered && !root.saverCard && cfg.open_on_hover !== false) {
+                placed = false             // the position reported with the hover itself can be stale
+                if (hovered) {
                     collapseTimer.stop()
-                    openTimer.restart()
                 } else {
                     openTimer.stop()
                     collapseTimer.restart()
                 }
+            }
+            onAtChanged: {
+                if (!hovered)
+                    return
+                if (!placed) {
+                    enteredAt = at
+                    placed = true
+                    return
+                }
+                if (!root.expanded && !openTimer.running && wantsOpen()
+                        && Math.abs(at.x - enteredAt.x) + Math.abs(at.y - enteredAt.y) >= 2)
+                    openTimer.restart()
             }
         }
         WheelHandler {

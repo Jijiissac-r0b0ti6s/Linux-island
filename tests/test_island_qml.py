@@ -285,6 +285,41 @@ class IslandQmlTest(unittest.TestCase):
         wait(900)
         self.assert_clickable(self.gear())
 
+    # --- hover: only real pointer movement opens the popup
+    def move_to(self, item_x, item_y, steps=1):
+        from PySide6.QtCore import QPoint, QPointF
+        from PySide6.QtTest import QTest
+        for i in range(steps):
+            p = self.pill().mapToScene(QPointF(item_x + i * 3, item_y))
+            QTest.mouseMove(self.view, QPoint(round(p.x()), round(p.y())))
+            wait(30)
+
+    def test_moving_over_the_pill_opens_it(self):
+        self.move_to(60, 14, steps=4)
+        wait(250)
+        self.assertTrue(self.prop("expanded"))
+
+    def test_pill_growing_under_a_still_pointer_does_not_open(self):
+        self.move_to(self.pill().width() + 30, 14)          # resting just right of the idle pill
+        wait(250)
+        self.s["audio"]._apply(0.7, False)                   # a volume pop-up widens it under the pointer
+        wait(500)
+        self.assertFalse(self.prop("expanded"))
+        from linux_island.services import media as m         # so does a song starting
+        self.s["media"]._apply(dict(m._EMPTY, bus="org.mpris.MediaPlayer2.x", player="X", title="Song",
+                                    track="/t", playing=True, length=100.0))
+        wait(500)
+        self.assertFalse(self.prop("expanded"))
+        self.move_to(self.pill().width() - 60, 14, steps=3)  # but moving the pointer does open it
+        wait(250)
+        self.assertTrue(self.prop("expanded"))
+
+    def test_hover_open_can_be_turned_off(self):
+        self.set_cfg(open_on_hover=False)
+        self.move_to(60, 14, steps=4)
+        wait(250)
+        self.assertFalse(self.prop("expanded"))
+
     def gear(self):
         return [i for i in all_items(self.root) if i.metaObject().className().startswith("IconButton")
                 and i.property("name") == "settings"][0]

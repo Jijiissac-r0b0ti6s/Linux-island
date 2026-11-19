@@ -15,6 +15,12 @@ KEYS = "org.gnome.settings-daemon.plugins.media-keys"
 SHORTCUT = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/linux-island-lock/"
 
 
+def wayland_session():
+    """True in a Wayland session (even when the island itself runs through XWayland): X11 then only
+    sees the apps that use XWayland, not native Wayland ones such as recent Chrome, Brave or VS Code."""
+    return os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland" or bool(os.environ.get("WAYLAND_DISPLAY"))
+
+
 def runtime_dir():
     """Where single-instance locks and command sockets live (the same place, so anything that can
     see one can reach the other)."""

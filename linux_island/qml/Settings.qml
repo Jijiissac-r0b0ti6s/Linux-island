@@ -660,7 +660,10 @@ ApplicationWindow {
                         SwitchRow {
                             required property var modelData
                             required property int index
-                            title: modelData.title; detail: modelData.detail
+                            readonly property bool unavailable: modelData.key === "home_on_empty_desktop" && settings.waylandSession
+                            enabled: !unavailable
+                            title: modelData.title
+                            detail: unavailable ? "Not available in a Wayland session: the island can't see native Wayland windows" : modelData.detail
                             divider: index < 2
                             checked: v[modelData.key] === true
                             onToggled: on => put(modelData.key, on)

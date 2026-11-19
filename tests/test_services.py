@@ -488,6 +488,30 @@ class BluetoothTest(unittest.TestCase):
         self.assertEqual(len(spy), 1)
 
 
+# ---------------------------------------------------------------- windows / Wayland
+class WaylandTest(unittest.TestCase):
+    def test_session_detection(self):
+        from linux_island import system
+        with mock.patch.dict(os.environ, {"XDG_SESSION_TYPE": "wayland"}, clear=False):
+            self.assertTrue(system.wayland_session())
+        with mock.patch.dict(os.environ, {"XDG_SESSION_TYPE": "x11", "WAYLAND_DISPLAY": "wayland-0"}):
+            self.assertTrue(system.wayland_session())             # e.g. a nested Wayland compositor
+        env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY",)}
+        env["XDG_SESSION_TYPE"] = "x11"
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertFalse(system.wayland_session())
+
+    def test_no_home_card_in_a_wayland_session(self):
+        """X11 can't see native Wayland windows: the card would swoop in and never leave."""
+        from linux_island.services import desktop
+        with mock.patch.object(desktop.system, "wayland_session", return_value=True), \
+             mock.patch.object(desktop.QGuiApplication, "platformName", return_value="xcb"), \
+             mock.patch.object(desktop, "_X11Windows") as x11, mock.patch("builtins.print"):
+            d = desktop.DesktopService()
+        x11.assert_not_called()
+        self.assertEqual(d.emptyScreens, [])
+
+
 # ---------------------------------------------------------------- config
 class ConfigTest(unittest.TestCase):
     def setUp(self):

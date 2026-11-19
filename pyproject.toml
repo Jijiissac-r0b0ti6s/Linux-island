@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "linux-island"
-version = "0.2.0"
+version = "0.2.1"
 description = "A dynamic-island style status pill for Linux desktops"
 readme = "README.md"
 license = { text = "MIT" }
