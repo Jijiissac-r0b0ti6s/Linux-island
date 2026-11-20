@@ -14,7 +14,7 @@ from jeepney.io.blocking import Proxy, open_dbus_connection
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
 from .idle import IdleClock
-from .threads import name_this_thread
+from .threads import emit, name_this_thread
 
 GNOME = DBusAddress("/org/gnome/ScreenSaver", bus_name="org.gnome.ScreenSaver", interface="org.gnome.ScreenSaver")
 LOGIND_SESSION = DBusAddress("/org/freedesktop/login1/session/auto", bus_name="org.freedesktop.login1",
@@ -53,14 +53,14 @@ class LockService(QObject):
             reply = conn.send_and_get_reply(new_method_call(GNOME, "GetActive"), timeout=2)
             if reply.header.message_type != MessageType.method_return:
                 raise RuntimeError("no org.gnome.ScreenSaver")
-            self._locked_from_bus.emit(bool(reply.body[0]))
+            emit(self._locked_from_bus, bool(reply.body[0]))
             rule = MatchRule(type="signal", interface=GNOME.interface, member="ActiveChanged",
                              path=GNOME.object_path)
             Proxy(message_bus, conn).AddMatch(rule)
             with conn.filter(rule) as signals:
                 while True:
                     msg = conn.recv_until_filtered(signals)
-                    self._locked_from_bus.emit(bool(msg.body[0]))
+                    emit(self._locked_from_bus, bool(msg.body[0]))
         except Exception as e:
             if DEBUG:
                 print(f"lock: GNOME screensaver unavailable ({e}), polling logind", flush=True)
@@ -80,7 +80,7 @@ class LockService(QObject):
                     locked = bool(reply.body[0][1])
                     if locked != last:
                         last = locked
-                        self._locked_from_bus.emit(locked)
+                        emit(self._locked_from_bus, locked)
             except Exception:
                 pass
             time.sleep(0.5)

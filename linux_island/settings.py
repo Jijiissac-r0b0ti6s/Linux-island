@@ -177,6 +177,16 @@ class SettingsBackend(QObject):
         if running != self._running:
             self._running = running
             self.statusChanged.emit()
+        # the helper can be turned on or off elsewhere (the Extensions app) while the panel is open
+        self._helper_ticks = getattr(self, "_helper_ticks", 0) + 1
+        if hasattr(self, "_helper") and self._helper_ticks % 5 == 0:
+            self._refresh_helper()
+
+    def _refresh_helper(self):
+        state = system.helper_extension_state()
+        if state != self._helper:
+            self._helper = state
+            self.helperChanged.emit()
 
     @Property(bool, notify=statusChanged)
     def running(self):

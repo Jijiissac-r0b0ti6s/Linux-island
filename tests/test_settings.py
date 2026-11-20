@@ -204,3 +204,20 @@ class ReloadTest(TempConfig):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HelperRefreshTest(unittest.TestCase):
+    def test_helper_state_follows_changes_made_elsewhere(self):
+        from unittest import mock
+        from linux_island import settings
+        with mock.patch.object(settings.system, "helper_extension_state", return_value="off"), \
+                mock.patch("linux_island.app._send_to_running", return_value=None):
+            backend = settings.SettingsBackend()
+            self.assertEqual(backend.helperState, "off")
+            seen = []
+            backend.helperChanged.connect(lambda: seen.append(backend.helperState))
+            settings.system.helper_extension_state.return_value = "active"
+            for _ in range(5):
+                backend._poll_status()
+            self.assertEqual(seen, ["active"])
+            backend._status_timer.stop()

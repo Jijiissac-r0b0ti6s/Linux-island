@@ -9,7 +9,7 @@ from jeepney import DBusAddress, MatchRule, MessageType, message_bus, new_method
 from jeepney.io.threading import DBusRouter, Proxy, open_dbus_connection
 from PySide6.QtCore import Property, QObject, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QColor, QImage
-from .threads import name_this_thread
+from .threads import emit, name_this_thread
 
 PREFIX = "org.mpris.MediaPlayer2."
 PATH = "/org/mpris/MediaPlayer2"
@@ -157,7 +157,7 @@ class MediaService(QObject):
             pick = next(iter(players), "")
         self._current = pick
         if not pick:
-            self._state.emit(dict(_EMPTY))
+            emit(self._state, dict(_EMPTY))
             return
 
         p, meta = players[pick], players[pick]["Metadata"]
@@ -168,7 +168,7 @@ class MediaService(QObject):
         art = str(meta.get("mpris:artUrl") or "")
         if art != self._art:
             self._art, self._accent = art, _accent_for(art)
-        self._state.emit({
+        emit(self._state, {
             "bus": pick,
             "player": pick[len(PREFIX):].split(".")[0].capitalize(),
             "title": str(meta.get("xesam:title") or ""),
@@ -187,7 +187,7 @@ class MediaService(QObject):
     def _refresh_position(self):
         try:
             value = self._call(self._s["bus"], PROPS, "Get", "ss", (PLAYER, "Position"))[0][1]
-            self._pos.emit(max(0, value) / 1e6)
+            emit(self._pos, max(0, value) / 1e6)
         except Exception:
             pass
 

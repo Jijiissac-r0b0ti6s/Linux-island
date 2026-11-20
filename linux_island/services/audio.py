@@ -7,7 +7,7 @@ import time
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 from .pulse_events import PulseEvents
-from .threads import name_this_thread
+from .threads import emit, name_this_thread
 
 
 class _Wpctl:
@@ -80,13 +80,13 @@ class AudioService(QObject):
             try:
                 state = self._backend.read()
                 if state:
-                    self._polled.emit(*state)
+                    emit(self._polled, *state)
                 if check_output and hasattr(self._backend, "output"):
                     now = self._backend.output()
                     if now and output and now != output:
                         desc, name = now
                         headphones = "bluez" in name or any(w in (desc + name).lower() for w in ("head", "ear"))
-                        self.outputChanged.emit(desc, headphones)
+                        emit(self.outputChanged, desc, headphones)
                     output = now or output
             except (OSError, subprocess.SubprocessError):
                 pass

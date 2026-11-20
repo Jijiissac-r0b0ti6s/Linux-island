@@ -9,7 +9,7 @@ import threading
 import time
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
-from .threads import name_this_thread
+from .threads import emit, name_this_thread
 
 _RELAYS = {"pipewire", "wireplumber", "xdg-desktop-por"}  # hold the device on behalf of another app
 
@@ -101,7 +101,7 @@ class CameraService(QObject):
         watch = _CameraWatch()
         while True:
             if glob.glob("/dev/video*"):
-                self._polled.emit(_scan() or "")
+                emit(self._polled, _scan() or "")
             # rescan only when a camera device is opened or closed (or one is plugged in);
             # without inotify, fall back to a scan every 3 s
             if not watch.wait(30 if watch.ok else 3):

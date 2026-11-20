@@ -1,5 +1,15 @@
 linux-island (@VERSION@) unstable; urgency=medium
 
+  * Hover opens the popup only once the pointer has moved onto the pill and
+    rests there (0.3 s): not when the pointer passes over it on the way to a
+    browser tab, and not for the small pointer jitter some X servers
+    (XWayland) report while the pill animates.
+  * LINUX_ISLAND_DEBUG=1 logs why the popup opened.
+
+ -- Linux Island maintainers <linux-island@localhost>  Fri, 20 Nov 2026 23:45:00 +0530
+
+linux-island (0.3.1) unstable; urgency=medium
+
   * Settings: after "Turn on" for a helper extension GNOME hasn't loaded yet,
     the row now says it starts at the next login (it used to look unchanged).
 

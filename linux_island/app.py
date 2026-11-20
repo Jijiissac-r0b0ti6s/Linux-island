@@ -344,6 +344,7 @@ class Island:
         for name, service in self.services.items():
             ctx.setContextProperty(name, service)
         ctx.setContextProperty("cfg", cfg)
+        ctx.setContextProperty("islandDebug", DEBUG)
 
         # the settings panel writes the config file: apply changes as soon as it is saved
         self._watcher = QFileSystemWatcher()

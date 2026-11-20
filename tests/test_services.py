@@ -134,6 +134,28 @@ class BrightnessServiceTest(unittest.TestCase):
         svc, _ = self.make(raw=500)
         self.assertAlmostEqual(svc.levels["eDP-1"], 0.5)
 
+    def test_logged_wake_sequence_from_17_november(self):
+        """The real sequence: idle dim, mouse-move restore, then two key presses straight after."""
+        svc, tmp = self.make(raw=85305)
+        idle = {"ms": 200}
+        svc._idle.idle_ms.side_effect = lambda: idle["ms"]
+        shown = Spy(svc.changed)
+
+        def tick(raw=None, ms=None):
+            if ms is not None:
+                idle["ms"] = ms
+            if raw is not None:
+                (tmp / "brightness").write_text(str(raw))
+            svc._poll_backlight()
+        for i in range(150):                      # a minute without input, polled every 0.4 s
+            tick(ms=200 + i * 400)
+        tick(58944, 60044)                        # GNOME dims
+        tick(85555, 270)                          # mouse moved: GNOME restores
+        self.assertEqual(len(shown), 0)
+        tick(23040, 369)                          # brightness key down
+        tick(182400, 233)                         # brightness key up
+        self.assertEqual(len(shown), 2)
+
     def test_key_change_emits(self):
         svc, tmp = self.make()
         spy = Spy(svc.changed)
@@ -585,3 +607,24 @@ class ConfigTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ThreadEmitTest(unittest.TestCase):
+    def test_emit_after_the_receiver_is_gone_ends_the_thread_quietly(self):
+        import threading
+        from linux_island.services.threads import emit
+
+        class Gone:
+            def emit(self, *args):
+                raise RuntimeError("Signal source has been deleted")
+
+        errors = []
+        old = threading.excepthook
+        threading.excepthook = lambda a: errors.append(a)
+        try:
+            t = threading.Thread(target=lambda: (emit(Gone(), 1), errors.append("kept going")))
+            t.start(); t.join()
+        finally:
+            threading.excepthook = old
+        # Python's default thread hook prints nothing for SystemExit; the loop doesn't carry on
+        self.assertEqual([getattr(e, "exc_type", e) for e in errors], [SystemExit])

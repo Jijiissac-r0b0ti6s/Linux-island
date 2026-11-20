@@ -12,6 +12,7 @@ from PySide6.QtGui import QGuiApplication
 
 from .. import system
 from .shell_windows import ShellWindows
+from .threads import emit
 
 _ERROR_HANDLER = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
 ALL_DESKTOPS = 0xFFFFFFFF
@@ -163,7 +164,7 @@ class DesktopService(QObject):
         self._from_shell.connect(self._apply_shell)
         if use_shell:
             names = [s.name() for s in QGuiApplication.screens()]
-            self._shell = ShellWindows(names, self._from_shell.emit)
+            self._shell = ShellWindows(names, lambda result: emit(self._from_shell, result))
             app = QGuiApplication.instance()
             app.screenAdded.connect(self._names_changed)
             app.screenRemoved.connect(self._names_changed)

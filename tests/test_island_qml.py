@@ -296,8 +296,24 @@ class IslandQmlTest(unittest.TestCase):
 
     def test_moving_over_the_pill_opens_it(self):
         self.move_to(60, 14, steps=4)
-        wait(250)
+        wait(450)                                             # once it has rested there
         self.assertTrue(self.prop("expanded"))
+
+    def test_passing_over_the_pill_does_not_open(self):
+        """Swiping across the top of the screen (to a browser tab, say) crosses the pill."""
+        opened = []
+        self.root.expandedChanged.connect(lambda: opened.append(self.prop("expanded")))
+        self.move_to(10, 14, steps=12)                        # 33 px across in ~0.36 s, never resting...
+        self.move_to(self.pill().width() + 80, 14)            # ...and off the other side
+        wait(500)
+        self.assertNotIn(True, opened, "the popup flashed open while the pointer passed over")
+
+    def test_jitter_in_place_does_not_open(self):
+        self.move_to(60, 14)
+        for i in range(30):                                   # +-1 px wobble, as some X servers report
+            self.move_to(60 + (i % 2), 14 + (i % 2))
+        wait(500)
+        self.assertFalse(self.prop("expanded"))
 
     def test_pill_growing_under_a_still_pointer_does_not_open(self):
         self.move_to(self.pill().width() + 30, 14)          # resting just right of the idle pill
@@ -310,14 +326,14 @@ class IslandQmlTest(unittest.TestCase):
                                     track="/t", playing=True, length=100.0))
         wait(500)
         self.assertFalse(self.prop("expanded"))
-        self.move_to(self.pill().width() - 60, 14, steps=3)  # but moving the pointer does open it
-        wait(250)
+        self.move_to(self.pill().width() - 60, 14, steps=3)  # but moving the pointer onto it and resting does
+        wait(450)
         self.assertTrue(self.prop("expanded"))
 
     def test_hover_open_can_be_turned_off(self):
         self.set_cfg(open_on_hover=False)
         self.move_to(60, 14, steps=4)
-        wait(250)
+        wait(450)
         self.assertFalse(self.prop("expanded"))
 
     def gear(self):

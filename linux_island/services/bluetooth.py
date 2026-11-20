@@ -5,7 +5,7 @@ import time
 from jeepney import DBusAddress, MessageType, new_method_call
 from jeepney.io.blocking import open_dbus_connection
 from PySide6.QtCore import Property, QObject, Signal, Slot
-from .threads import name_this_thread
+from .threads import emit, name_this_thread
 
 DEVICE = "org.bluez.Device1"
 BATTERY = "org.bluez.Battery1"
@@ -63,12 +63,12 @@ class BluetoothService(QObject):
                             d = (self._connected(bus) or now).get(path, now[path])
                         except Exception:
                             d = now[path]
-                        self.deviceEvent.emit(d["name"], True, d["battery"], d["audio"])
+                        emit(self.deviceEvent, d["name"], True, d["battery"], d["audio"])
                     for path in known.keys() - now.keys():
                         d = known[path]
-                        self.deviceEvent.emit(d["name"], False, -1, d["audio"])
+                        emit(self.deviceEvent, d["name"], False, -1, d["audio"])
                 known = now
-                self._snapshot.emit(sorted(now.values(), key=lambda d: d["name"]))
+                emit(self._snapshot, sorted(now.values(), key=lambda d: d["name"]))
             time.sleep(3)
 
     @Slot(object)

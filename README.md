@@ -5,7 +5,8 @@ A dynamic-island style pill at the top of the Linux desktop, on one monitor, sev
 - **Now playing**: artwork, title, an equaliser, play/pause, next/previous and a seek bar for any MPRIS player
   (Spotify, Firefox / YouTube, VLC, mpv…)
 - **Pop-ups**: volume, brightness, charger, Bluetooth devices (with their battery) and headphones
-- **Hover or click** the pill for the clock, battery, and volume and brightness sliders; scroll over it for volume
+- **Hover (rest the pointer on it) or click** the pill for the clock, battery, and volume and brightness sliders;
+  scroll over it for volume
 - **Camera and microphone indicators**: a green / orange dot while an app uses them
 - **Home card**: when every window on a monitor is minimised, the pill swoops into a large card with the time, a
   calendar, battery, Bluetooth devices and per-monitor brightness
@@ -34,13 +35,13 @@ Two packages are built for every release (`packaging/build.sh` builds them into 
 **Debian, Ubuntu, Mint, Pop!_OS, elementary, Zorin, …**
 
 ```bash
-sudo apt install ./linux-island_0.3.1_amd64.deb
+sudo apt install ./linux-island_0.3.2_amd64.deb
 ```
 
 **Any other distribution** (Fedora, Arch, openSUSE, …): unpack the tarball and run its installer
 
 ```bash
-tar xf linux-island-0.3.1-x86_64.tar.gz && cd linux-island-0.3.1-x86_64
+tar xf linux-island-0.3.2-x86_64.tar.gz && cd linux-island-0.3.2-x86_64
 sudo ./install.sh          # for everyone: /opt/linux-island, /usr/local/bin
 ./install.sh --user        # or just for you, no root: ~/.local
 ./install.sh --uninstall   # (add --user for a user install) remove it again

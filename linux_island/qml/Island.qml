@@ -103,7 +103,18 @@ Item {
     Timer { id: hudTimer; interval: cfg.hud_timeout_ms; onTriggered: root.hud = "" }
     Timer { id: collapseTimer; interval: 400; onTriggered: root.expanded = false }
     // short delay so the popup doesn't open when the pointer merely passes over the pill
-    Timer { id: openTimer; interval: 120; onTriggered: { root.hud = ""; root.expanded = true } }
+    // hover opens the popup once the pointer has settled on the pill (passing over it doesn't)
+    Timer {
+        id: openTimer
+        interval: 300
+        onTriggered: {
+            if (typeof islandDebug !== "undefined" && islandDebug)
+                console.log("island: popup opened by hover (pointer moved " + Math.round(hover.travel)
+                            + " px onto the pill, then rested " + interval + " ms)")
+            root.hud = ""
+            root.expanded = true
+        }
+    }
 
     Connections { target: audio; function onChanged() { if (cfg.popup_volume !== false) root.showHud("volume") } }
     Connections {
@@ -206,34 +217,38 @@ Item {
         onHeightChanged: root.pushMask()
         Component.onCompleted: root.pushMask()
 
-        // Open on hover only once the pointer really moves over the pill. When the pill grows under a
-        // pointer that is just resting there (a song starts, a volume / brightness pop-up appears),
-        // Qt reports a hover too; that must not open the popup by itself.
+        // Hover opens the popup only when the pointer has really moved onto the pill and then settled
+        // there. Not when the pill grows under a resting pointer (a song starts, a volume / brightness
+        // pop-up), not for the pointer just passing over on its way somewhere else, and not for the
+        // tiny jitter some X servers report while the pill animates.
         HoverHandler {
             id: hover
-            property point enteredAt
-            property bool placed: false    // enteredAt holds the first real position of this hover
+            property point start
+            property bool placed: false    // `start` holds the first real position of this hover
+            property real travel: 0        // furthest the pointer has got from where it came in (jitter in place stays ~0)
             readonly property point at: point.scenePosition
+            readonly property int minTravel: 6
             function wantsOpen() { return !root.saverCard && cfg.open_on_hover !== false }
             onHoveredChanged: {
                 placed = false             // the position reported with the hover itself can be stale
-                if (hovered) {
+                travel = 0
+                openTimer.stop()
+                if (hovered)
                     collapseTimer.stop()
-                } else {
-                    openTimer.stop()
+                else
                     collapseTimer.restart()
-                }
             }
             onAtChanged: {
                 if (!hovered)
                     return
                 if (!placed) {
-                    enteredAt = at
+                    start = at
                     placed = true
                     return
                 }
-                if (!root.expanded && !openTimer.running && wantsOpen()
-                        && Math.abs(at.x - enteredAt.x) + Math.abs(at.y - enteredAt.y) >= 2)
+                travel = Math.max(travel, Math.abs(at.x - start.x) + Math.abs(at.y - start.y))
+                // every real move restarts the wait: it opens once the pointer rests on the pill
+                if (!root.expanded && wantsOpen() && travel >= minTravel)
                     openTimer.restart()
             }
         }
