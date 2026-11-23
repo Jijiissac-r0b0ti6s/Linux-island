@@ -2,12 +2,9 @@
 
 Every change is saved to the config file at once; the running island notices and applies it.
 """
-import subprocess
 import sys
 from pathlib import Path
 
-import os
-import shlex
 
 from PySide6.QtCore import Property, QLockFile, QObject, QStandardPaths, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QIcon
@@ -21,6 +18,16 @@ HERE = Path(__file__).resolve().parent
 
 ACCENTS = ["#34c759", "#0a84ff", "#5e5ce6", "#bf5af2", "#ff375f", "#ff9f0a", "#ffd60a", "#64d2ff", "#ffffff"]
 PILLS = ["#000000", "#1c1c1e", "#2c2c2e", "#0b1a33", "#1a0b2e", "#062b1d"]
+
+
+def _monitor_label(screen):
+    """What to call a monitor: its output name on Linux ("DP-1"); on Windows, where that is "\\\\.\\DISPLAY1",
+    the monitor's own name when Qt has one."""
+    if system.WINDOWS and screen.name().startswith("\\\\."):
+        model = " ".join(p for p in (screen.manufacturer(), screen.model()) if p).strip()
+        number = screen.name().rsplit("DISPLAY", 1)[-1]
+        return f"{model} (display {number})" if model else f"Display {number}"
+    return screen.name()
 
 
 class SettingsBackend(QObject):
@@ -85,8 +92,8 @@ class SettingsBackend(QObject):
     def monitors(self):
         app = QGuiApplication.instance()
         primary = app.primaryScreen()
-        return [{"name": s.name(), "size": f"{s.size().width()} × {s.size().height()}", "primary": s == primary,
-                 "laptop": s.name().startswith(("eDP", "LVDS", "DSI"))} for s in app.screens()]
+        return [{"name": s.name(), "label": _monitor_label(s), "size": f"{s.size().width()} × {s.size().height()}",
+                 "primary": s == primary, "laptop": s.name().startswith(("eDP", "LVDS", "DSI"))} for s in app.screens()]
 
     @Slot(str, bool)
     def setMonitor(self, name, on):
@@ -130,6 +137,10 @@ class SettingsBackend(QObject):
     def enableHelper(self):
         self._helper = system.enable_helper_extension()
         self.helperChanged.emit()
+
+    @Property(bool, constant=True)
+    def windows(self):
+        return system.WINDOWS
 
     @Property(bool, constant=True)
     def waylandSession(self):
@@ -195,8 +206,7 @@ class SettingsBackend(QObject):
     @Slot()
     def startIsland(self):
         try:
-            subprocess.Popen(shlex.split(system.launcher()), start_new_session=True,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            system.spawn(system.launcher_args())
         except OSError as e:
             print(f"linux-island: cannot start ({e})", file=sys.stderr)
         QTimer.singleShot(1500, self._poll_status)
@@ -208,7 +218,7 @@ class SettingsBackend(QObject):
 
 
 def _server_name():
-    return os.path.join(system.runtime_dir(), "linux-island-settings.sock")
+    return system.socket_name("linux-island-settings.sock")
 
 
 def _ask_open_panel_to_show(welcome=False):

@@ -60,6 +60,11 @@ there, GNOME users turn on the **Linux Island helper** extension, which comes wi
 once after installing, then Settings > Screensaver and lock > Home card > Turn on. Without it, a Wayland session leaves
 the home card out (rather than showing one that never goes back to the pill); everything else works either way.
 
+**Windows 10 / 11 (preview, not yet tested on real hardware)**: unzip `linux-island-<version>-windows-x64.zip`
+and run `install.cmd` (per user, no administrator needed). It brings its own Python and Qt. See
+[WINDOWS-TESTING.md](WINDOWS-TESTING.md) for what to check and the known differences. To build it (on Linux):
+`packaging/build-windows.sh`.
+
 ## Settings
 
 Open **Linux Island Settings** from the app menu, the gear in the open pill, or `linux-island --settings`:
@@ -87,6 +92,8 @@ linux-island --lock             # lock, with the clock card and fade first
 linux-island --lock-shortcut on # GNOME: Ctrl+Alt+L goes through the island (off: give it back)
 linux-island --autostart on|off
 linux-island --status           # what the running island sees: lock, idle time, screensaver armed, …
+linux-island --diagnose         # start every part for a few seconds and print what each one finds
+linux-island --quit             # stop the running island
 ```
 
 GNOME always draws its lock screen above every window, so the island can't be *on* the lock screen. When locking
@@ -130,6 +137,7 @@ Qt needs `libxcb-cursor0` on X11 (`sudo apt install libxcb-cursor0`).
 | `linux_island/system.py` | start on login, GNOME lock shortcut |
 | `linux_island/services/` | media, audio, brightness, battery, camera, mic, Bluetooth, windows, lock / idle |
 | `linux_island/qml/` | the island, its icons and the screensaver |
+| `linux_island/win/` | the Windows versions of the services (Win32, Core Audio, WMI / DDC/CI, WinRT media and Bluetooth) |
 | `gnome-extension/` | the GNOME Shell helper (tells the island which monitors are empty, Wayland windows included) |
 | `tests/` | unit and QML tests |
 | `packaging/` | `packaging/build.sh` builds the `.deb` and the universal tarball (with `install.sh`) into `dist/` |

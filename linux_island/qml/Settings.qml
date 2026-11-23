@@ -438,7 +438,7 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                             color: "#d1d1d6"; font.pixelSize: 13
-                            text: "The pill is at the top of your screen. Pick the monitors it should use below, then choose colours and features from the sidebar. Every change applies straight away.\n\nYou can come back here any time: Linux Island Settings in the app menu, or the gear on the home card (minimise every window on a monitor)."
+                            text: "The pill is at the top of your screen. Pick the monitors it should use below, then choose colours and features from the sidebar. Every change applies straight away.\n\nYou can come back here any time: Linux Island Settings in the " + (settings.windows ? "Start menu" : "app menu") + ", or the gear on the home card (minimise every window on a monitor)."
                         }
                         Button { text: "Got it"; flat: true; onClicked: settings.dismissWelcome() }
                     }
@@ -467,7 +467,7 @@ ApplicationWindow {
                             required property var modelData
                             required property int index
                             enabled: typeof v.monitors !== "string"
-                            title: modelData.name + (modelData.laptop ? "  ·  Laptop screen" : "")
+                            title: (modelData.label || modelData.name) + (modelData.laptop ? "  ·  Laptop screen" : "")
                             detail: modelData.size + (modelData.primary ? "  ·  primary" : "")
                             divider: index < settings.monitors.length - 1
                             CheckBox {
@@ -782,7 +782,7 @@ ApplicationWindow {
                     Layout.topMargin: 18
                     SettingRow {
                         title: "Linux Island " + settings.version
-                        detail: "A dynamic-island style pill for the Linux desktop (X11)"
+                        detail: settings.windows ? "A dynamic-island style pill for the Windows desktop" : "A dynamic-island style pill for the Linux desktop (X11)"
                         divider: true
                     }
                     SettingRow {

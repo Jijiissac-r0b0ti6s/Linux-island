@@ -5,7 +5,6 @@ import ctypes
 import ctypes.util
 import os
 import re
-import shlex
 import signal
 import subprocess
 import sys
@@ -17,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 def _preload_xcb_cursor():
     """Qt >= 6.5 needs libxcb-cursor on X11. If the distro package is missing, use a
     copy unpacked into <project>/.libs (see README) so the app still starts."""
-    if ctypes.util.find_library("xcb-cursor"):
+    if sys.platform == "win32" or ctypes.util.find_library("xcb-cursor"):
         return
     for lib in (HERE.parent / ".libs").rglob("libxcb-cursor.so.0"):
         ctypes.CDLL(str(lib), mode=ctypes.RTLD_GLOBAL)
@@ -480,15 +479,66 @@ class Island:
             print(f"island: showing on {sorted(self.windows)} (wanted {self.cfg['monitors']!r})", flush=True)
 
 
+def diagnose(app, seconds=6):
+    """`linux-island --diagnose`: what each part of the island sees on this computer."""
+    import platform
+    import traceback
+    print(f"linux-island {__import__('linux_island').__version__} on {platform.platform()}, "
+          f"Python {platform.python_version()}, Qt platform {app.platformName()}")
+    for s in app.screens():
+        g = s.geometry()
+        print(f"  screen {s.name()!r}: {g.width()}x{g.height()} at {g.x()},{g.y()}, scale {s.devicePixelRatio()}, "
+              f"{(s.manufacturer() + ' ' + s.model()).strip() or 'no model name'}"
+              + ("  (primary)" if s == app.primaryScreen() else ""))
+    print(f"  config: {config.CONFIG_PATH}")
+    from . import services as S
+    made = {}
+    for name in ("media", "audio", "brightness", "battery", "camera", "microphone", "bluetooth", "desktop", "lock"):
+        cls = {"media": S.MediaService, "audio": S.AudioService, "brightness": S.BrightnessService,
+               "battery": S.BatteryService, "camera": S.CameraService, "microphone": S.MicrophoneService,
+               "bluetooth": S.BluetoothService, "desktop": S.DesktopService, "lock": S.LockService}[name]
+        try:
+            made[name] = cls()
+        except Exception:
+            print(f"  {name}: FAILED to start")
+            traceback.print_exc()
+    print(f"waiting {seconds} s for the background parts...", flush=True)
+    QTimer.singleShot(seconds * 1000, app.quit)
+    app.exec()
+
+    def show(name, fields):
+        service = made.get(name)
+        if service is None:
+            return
+        values = []
+        for f in fields:
+            try:
+                values.append(f"{f}={getattr(service, f)!r}")
+            except Exception as e:
+                values.append(f"{f}=<{e}>")
+        print(f"  {name:11} {type(service).__name__}: " + ", ".join(values))
+    show("media", ["available", "player", "title", "artist", "playing", "length", "position", "canNext", "artUrl"])
+    show("audio", ["available", "volume", "muted"])
+    show("brightness", ["levels"])
+    show("battery", ["available", "percent", "charging"])
+    show("camera", ["active", "app"])
+    show("microphone", ["active"])
+    show("bluetooth", ["devices"])
+    show("desktop", ["source", "emptyScreens"])
+    show("lock", ["locked", "idle"])
+    if "lock" in made:
+        print(f"  idle time   {made['lock']._clock.idle_ms()} ms")
+    print(f"  start on login: {system.autostart_enabled()}")
+    return 0
+
+
 FIRST_RUN_DONE = config.CONFIG_PATH.parent / ".welcomed"
 
 
 def open_settings(welcome=False):
     """Start the settings panel as its own process."""
     try:
-        subprocess.Popen(shlex.split(system.launcher()) + ["--settings"] + (["--welcome"] if welcome else []),
-                         start_new_session=True,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        system.spawn(system.launcher_args() + ["--settings"] + (["--welcome"] if welcome else []))
     except OSError as e:
         print(f"linux-island: cannot open settings ({e})", file=sys.stderr)
 
@@ -496,8 +546,7 @@ def open_settings(welcome=False):
 def _server_name():
     """Full path of the command socket, next to the single-instance lock (not /tmp, which a
     sandboxed shell may not share)."""
-    name = os.environ.get("LINUX_ISLAND_SOCKET") or "linux-island.sock"
-    return name if name.startswith("/") else os.path.join(system.runtime_dir(), name)
+    return system.socket_name(os.environ.get("LINUX_ISLAND_SOCKET") or "linux-island.sock")
 
 
 def _send_to_running(command, reply=False):
@@ -532,6 +581,8 @@ def _listen(island):
                 if line == "lock":
                     lock = island.services["lock"]
                     lock.lockNow() if island.cfg.get("lock_transition", True) else lock._lock_session()
+                if line == "quit":
+                    QGuiApplication.instance().quit()
                 if line == "status":
                     sock.write((json.dumps(island.status()) + "\n").encode())
                     sock.flush()
@@ -559,6 +610,9 @@ def main(argv=None):
     parser.add_argument("--status", action="store_true", help="show what the running island sees (lock, idle, ...)")
     parser.add_argument("--lock", action="store_true",
                         help="lock the screen; the running island first grows into a full-screen clock")
+    parser.add_argument("--quit", action="store_true", help="stop the running island")
+    parser.add_argument("--diagnose", action="store_true",
+                        help="start every part for a few seconds and print what each one finds, then exit")
     args = parser.parse_args(argv)
 
     if args.autostart:
@@ -587,6 +641,14 @@ def main(argv=None):
             print(f"{key:20} {value}")
         return 0
 
+    if args.quit:
+        from PySide6.QtCore import QCoreApplication
+        core = QCoreApplication(sys.argv[:1])  # noqa: F841
+        if not _send_to_running("quit"):
+            print("linux-island is not running", file=sys.stderr)
+            return 1
+        return 0
+
     if args.screensaver:
         from PySide6.QtCore import QCoreApplication
         core = QCoreApplication(sys.argv[:1])  # noqa: F841
@@ -606,6 +668,9 @@ def main(argv=None):
     QQuickWindow.setDefaultAlphaBuffer(True)
     app = QGuiApplication(sys.argv[:1])
     app.setQuitOnLastWindowClosed(False)
+
+    if args.diagnose:
+        return diagnose(app)
 
     if args.list_monitors:
         for s in app.screens():

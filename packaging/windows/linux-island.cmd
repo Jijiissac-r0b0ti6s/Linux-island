@@ -1,0 +1,3 @@
+@echo off
+rem Command line: linux-island.cmd --diagnose, --status, --settings, --lock, --list-monitors, ...
+"%~dp0python\python.exe" -m linux_island %*

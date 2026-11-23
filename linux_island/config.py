@@ -5,9 +5,13 @@ the change and applies it straight away.
 """
 import json
 import os
+import sys
 from pathlib import Path
 
-CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "linux-island" / "config.json"
+if sys.platform == "win32":   # %APPDATA%/linux-island/config.json
+    CONFIG_PATH = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "linux-island" / "config.json"
+else:
+    CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "linux-island" / "config.json"
 
 DEFAULTS = {
     # --- where ---

@@ -6,6 +6,7 @@ apart from the brightness keys.
 """
 import ctypes
 import ctypes.util
+import sys
 
 from jeepney import DBusAddress, MessageType, new_method_call
 from jeepney.io.blocking import open_dbus_connection
@@ -70,6 +71,9 @@ class IdleClock:
 
     def idle_ms(self):
         """Milliseconds since the last input, or None when it can't be told."""
+        if sys.platform == "win32":
+            from ..win import api
+            return api.idle_ms()
         ms = self._from_mutter()
         if ms is None and self._xss is not False:
             ms = self._from_x11()

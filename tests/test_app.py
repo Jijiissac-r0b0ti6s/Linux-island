@@ -242,6 +242,18 @@ class LockCommandTest(unittest.TestCase):
         self.assertEqual(result, [True])
         island.services["lock"].lockNow.assert_called_once()
 
+    def test_quit_stops_the_running_island(self):
+        island = mock.Mock(cfg={}, services={"lock": mock.Mock()})
+        server = app._listen(island)  # noqa: F841
+        import threading
+        t = threading.Thread(target=lambda: app._send_to_running("quit"))
+        with mock.patch.object(APP, "quit") as quit_:
+            t.start()
+            while t.is_alive():
+                self.pump(20)
+            self.pump(200)
+        quit_.assert_called_once()
+
     def test_status_answers_another_process(self):
         island = mock.Mock(cfg={}, services={"lock": mock.Mock()})
         island.status.return_value = {"locked": False, "screensaver_armed": True, "idle_s": 12.0}

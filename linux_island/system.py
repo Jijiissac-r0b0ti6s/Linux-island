@@ -1,11 +1,14 @@
-"""Desktop integration that needs no Qt: start on login, and the GNOME lock shortcut."""
+"""Desktop integration that needs no Qt: start on login, launching, and the GNOME lock shortcut (Linux)."""
 import ast
 import os
+import re
 import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+WINDOWS = sys.platform == "win32"
 
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 AUTOSTART = CONFIG_HOME / "autostart" / "linux-island.desktop"   # per user
@@ -18,22 +21,54 @@ SHORTCUT = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/lin
 def wayland_session():
     """True in a Wayland session (even when the island itself runs through XWayland): X11 then only
     sees the apps that use XWayland, not native Wayland ones such as recent Chrome, Brave or VS Code."""
+    if WINDOWS:
+        return False
     return os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland" or bool(os.environ.get("WAYLAND_DISPLAY"))
 
 
 def runtime_dir():
     """Where single-instance locks and command sockets live (the same place, so anything that can
     see one can reach the other)."""
+    if WINDOWS:
+        return os.environ.get("LOCALAPPDATA") or str(Path.home())
     return os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 
 
-def launcher():
-    """The command that starts the island: the installed `linux-island` launcher (it tells us its own
-    path), or this Python when running from a development checkout."""
+def socket_name(name):
+    """Full name of a command socket. Linux: a file next to the lock; Windows: a named pipe, which has
+    no directory, so it carries the user name instead."""
+    if WINDOWS:
+        user = re.sub(r"[^A-Za-z0-9_.-]", "_", os.environ.get("USERNAME", "user"))
+        return f"{name}-{user}"
+    return name if name.startswith("/") else os.path.join(runtime_dir(), name)
+
+
+def launcher_args():
+    """The command that starts the island, as a list: the installed launcher (it tells us its own path),
+    or this Python when running from a development checkout. On Windows, pythonw (no console window)."""
     installed = os.environ.get("LINUX_ISLAND_LAUNCHER", "")
-    if installed and os.path.isfile(installed) and os.access(installed, os.X_OK):
-        return shlex.quote(installed)
-    return f"{shlex.quote(sys.executable)} -m linux_island"
+    if installed and os.path.isfile(installed) and (WINDOWS or os.access(installed, os.X_OK)):
+        return [installed]
+    python = sys.executable
+    if WINDOWS:
+        windowless = os.path.join(os.path.dirname(python), "pythonw.exe")
+        python = windowless if os.path.isfile(windowless) else python
+    return [python, "-m", "linux_island"]
+
+
+def launcher():
+    """launcher_args() as one command line for this system's shell."""
+    args = launcher_args()
+    return subprocess.list2cmdline(args) if WINDOWS else " ".join(shlex.quote(a) for a in args)
+
+
+def spawn(args):
+    """Start another process that outlives this one (the settings panel, the island)."""
+    if WINDOWS:
+        flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+        return subprocess.Popen(args, creationflags=flags, close_fds=True,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+    return subprocess.Popen(args, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 # ---- start on login -------------------------------------------------------------
@@ -43,7 +78,29 @@ def _entry(hidden=False):
             + ("Hidden=true\n" if hidden else ""))
 
 
+RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"   # Windows: per-user programs started at sign-in
+RUN_VALUE = "Linux Island"
+
+
+def _win_autostart(enable=None):
+    import winreg
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
+        if enable is True:
+            winreg.SetValueEx(key, RUN_VALUE, 0, winreg.REG_SZ, launcher())
+        elif enable is False:
+            try:
+                winreg.DeleteValue(key, RUN_VALUE)
+            except FileNotFoundError:
+                pass
+        try:
+            return bool(winreg.QueryValueEx(key, RUN_VALUE)[0])
+        except FileNotFoundError:
+            return False
+
+
 def autostart_enabled():
+    if WINDOWS:
+        return _win_autostart()
     if AUTOSTART.exists():
         text = AUTOSTART.read_text()
         return "Hidden=true" not in text and "X-GNOME-Autostart-enabled=false" not in text
@@ -52,6 +109,9 @@ def autostart_enabled():
 
 def set_autostart(enable):
     """Per user. With the package's system-wide entry, turning it off writes a hidden override."""
+    if WINDOWS:
+        _win_autostart(bool(enable))
+        return
     if enable:
         if SYSTEM_AUTOSTART.exists():
             AUTOSTART.unlink(missing_ok=True)     # the system entry applies again
@@ -81,6 +141,8 @@ def _strv(text):
 
 
 def lock_shortcut_available():
+    if WINDOWS:
+        return False
     return bool(shutil.which("gsettings")) and bool(_gsettings("get", KEYS, "custom-keybindings"))
 
 
@@ -136,6 +198,8 @@ def helper_extension_state():
     """"active", "off", "error", "out-of-date", "missing" (installed after GNOME started: log out and
     back in), "pending" (turned on, starts at the next login), "not-installed", or "no-gnome" when
     this isn't a GNOME Shell session."""
+    if WINDOWS:
+        return "no-gnome"
     try:
         info = _shell_extensions_call("GetExtensionInfo", EXTENSION_UUID)
     except Exception:
