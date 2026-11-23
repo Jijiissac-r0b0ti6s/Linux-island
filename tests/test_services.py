@@ -435,6 +435,51 @@ class BatteryTest(unittest.TestCase):
         b, _ = self.make(cap="100", status="Full")
         self.assertTrue(b.charging)
 
+    def make_with_charger(self, online="1", cap="100", status="Not charging"):
+        root = Path(tempfile.mkdtemp())
+        bat, ac = root / "BAT0", root / "AC"
+        bat.mkdir()
+        ac.mkdir()
+        (bat / "type").write_text("Battery\n")
+        (bat / "capacity").write_text(cap)
+        (bat / "status").write_text(status)
+        (ac / "type").write_text("Mains\n")
+        (ac / "online").write_text(online + "\n")
+        real_glob = Path.glob
+        with mock.patch.object(Path, "glob", lambda self, pat: real_glob(root, pat)):
+            return battery.BatteryService(), bat, ac
+
+    def test_battery_status_wandering_at_full_charge_does_not_pop_hud(self):
+        # charger stays connected; the firmware reports Not charging / Discharging / Full in turn
+        b, bat, _ = self.make_with_charger()
+        spy = Spy(b.pluggedChanged)
+        for status in ("Discharging", "Not charging", "Discharging", "Full", "Not charging"):
+            (bat / "status").write_text(status)
+            b._refresh()
+        self.assertEqual(len(spy), 0)
+        self.assertTrue(b.charging)
+
+    def test_charger_online_drives_plugged(self):
+        b, bat, ac = self.make_with_charger(online="0", cap="60", status="Discharging")
+        self.assertFalse(b.charging)
+        self.assertEqual(b.state, "battery")
+        spy = Spy(b.pluggedChanged)
+        (ac / "online").write_text("1\n")
+        (bat / "status").write_text("Charging")
+        b._refresh()
+        self.assertEqual((len(spy), b.charging, b.state), (1, True, "charging"))
+        (ac / "online").write_text("0\n")
+        (bat / "status").write_text("Discharging")
+        b._refresh()
+        self.assertEqual((len(spy), b.charging, b.state), (2, False, "battery"))
+
+    def test_states(self):
+        for online, cap, status, state in (("1", "100", "Not charging", "full"), ("1", "100", "Full", "full"),
+                                           ("1", "80", "Not charging", "plugged"), ("1", "50", "Charging", "charging"),
+                                           ("0", "50", "Discharging", "battery")):
+            b, _, _ = self.make_with_charger(online, cap, status)
+            self.assertEqual(b.state, state, (online, cap, status))
+
     def test_level_change_does_not_pop_hud(self):
         b, bat = self.make()
         spy = Spy(b.pluggedChanged)

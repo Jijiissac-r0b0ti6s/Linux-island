@@ -431,6 +431,36 @@ class IslandQmlTest(unittest.TestCase):
         self.s["battery"].pluggedChanged.emit()
         self.assertEqual(self.prop("hud"), "power")
 
+    def test_power_hud_is_a_message_not_a_level_bar(self):
+        bat = self.s["battery"]
+        bat._percent, bat._charging, bat._state = 64, True, "charging"
+        bat.percentChanged.emit()
+        bat.chargingChanged.emit()
+        bat.stateChanged.emit()
+        bat.pluggedChanged.emit()
+        wait(250)
+        shown = texts(self.root)
+        self.assertIn("Charging", shown)
+        self.assertIn("64%", shown)
+        bars = [i for i in all_items(self.root) if i.metaObject().className().startswith("Bar") and i.isVisible()]
+        self.assertEqual(bars, [], "the charger pop-up shows no volume-style bar")
+        bat._charging, bat._state = False, "battery"
+        bat.chargingChanged.emit()
+        bat.stateChanged.emit()
+        bat.pluggedChanged.emit()
+        wait(100)
+        self.assertIn("On battery", texts(self.root))
+        bat._state = "full"
+        bat.stateChanged.emit()
+        wait(50)
+        self.assertIn("Fully charged", texts(self.root))
+
+    def test_volume_hud_still_has_its_bar(self):
+        self.s["audio"].changed.emit()
+        wait(250)
+        bars = [i for i in all_items(self.root) if i.metaObject().className().startswith("Bar") and i.isVisible()]
+        self.assertTrue(bars)
+
     def test_bluetooth_connect_hud(self):
         self.s["bluetooth"].deviceEvent.emit("Buds", True, 72, True)
         self.assertEqual(self.prop("hud"), "device")

@@ -362,34 +362,37 @@ Item {
                 id: hudIcon
                 x: 10; size: 16
                 anchors.verticalCenter: parent.verticalCenter
-                name: root.hud === "device" ? root.hudGlyph : root.hud === "brightness" ? "sun" : root.hud === "power" ? "bolt"
+                name: root.hud === "device" ? root.hudGlyph : root.hud === "brightness" ? "sun"
                     : audio.muted || audio.volume === 0 ? "mute" : "volume"
                 level: root.hud === "device" ? 1 : parent.level
                 visible: !parent.isPower
-                color: parent.isPower && battery.charging ? "#34c759" : "#ffffff"
+                color: "#ffffff"
             }
-            Text {
-                visible: root.hud === "device"
+            Text {   // device name, or what the charger is doing (no level bar: that's for volume / brightness)
+                id: hudMessage
+                visible: root.hud === "device" || parent.isPower
                 anchors.left: hudIcon.right
-                anchors.leftMargin: 10
+                anchors.leftMargin: parent.isPower ? 16 : 10
                 anchors.right: hudText.left
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.hudLabel
+                text: parent.isPower ? ({ "charging": "Charging", "full": "Fully charged", "plugged": "Plugged in" })[battery.state]
+                                         || "On battery"
+                                     : root.hudLabel
                 color: "#ffffff"
                 elide: Text.ElideRight
                 font.pixelSize: 12
                 font.weight: Font.Medium
             }
             Bar {
-                visible: root.hud !== "device"
+                visible: root.hud === "volume" || root.hud === "brightness"
                 anchors.left: hudIcon.right
                 anchors.leftMargin: 10
                 anchors.right: hudText.left
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
                 value: parent.level
-                fill: parent.isPower ? Battery.tone(battery.percent, battery.charging) : "#ffffff"
+                fill: "#ffffff"
             }
             Text {
                 id: hudText
@@ -400,7 +403,7 @@ Item {
                 horizontalAlignment: Text.AlignRight
                 text: root.hud === "device" ? (root.hudPercent >= 0 ? root.hudPercent + "%" : "")
                                             : Math.round(parent.level * 100) + "%"
-                color: "#ffffff"
+                color: parent.isPower ? Battery.tone(battery.percent, battery.charging) : "#ffffff"
                 font.pixelSize: 12
                 font.weight: Font.DemiBold
             }
